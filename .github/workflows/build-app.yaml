@@ -1,0 +1,91 @@
+name: Build and Package Windows Installer
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  windows_installer_build:
+    name: Build Windows Installer
+    runs-on: windows-2025-vs2026
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6.0.2
+
+    - name: Install ps2exe module
+      run: |
+        Install-Module -Name ps2exe -Force -Scope CurrentUser
+      shell: pwsh
+
+    - name: Prepare Staging and Build Executables
+      run: |
+        # 1. Create the root folder 'windowsinstaller'
+        New-Item -ItemType Directory -Force -Path "ZipStage\windowsinstaller"
+        
+        # 2. Create the nested 'windowsinstaller' folder inside the root
+        New-Item -ItemType Directory -Force -Path "ZipStage\windowsinstaller\windowsinstaller"
+        
+        # 3. Compile installer.ps1 -> install.exe (placed in root)
+        ps2exe -InputFile installer.ps1 -OutputFile 'ZipStage\windowsinstaller\install.exe' -IconFile Evolve.ico -version '2.0.0'
+        
+        # 4. Copy existing setup.exe from repo to root
+        Copy-Item -Path "setup.exe" -Destination "ZipStage\windowsinstaller\setup.exe"
+        
+        # 5. Copy repo files into the nested 'windowsinstaller' folder
+        # This excludes the ZipStage itself to avoid infinite loops
+        Get-ChildItem -Exclude "ZipStage", ".git", ".github", ".gitignore", "elevate.manifest.xml", "Evolve.ico", "InstallApplications.ps1", "Installer.ps1", "set-execution-policy.reg", "ToDo", "UpdatePolicy.ps1", "Setup.exe"| Copy-Item -Destination "ZipStage\windowsinstaller\windowsinstaller" -Recurse -Force
+      shell: pwsh
+
+    - name: Embed Admin Manifests (mt.exe)
+      run: |
+        $mtPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\*\bin\*\x64\mt.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+        if (-not $mtPath) { throw "mt.exe not found" }
+        
+        # Apply manifest to the newly compiled install.exe
+        & $mtPath -manifest elevate.manifest.xml -outputresource:"ZipStage\windowsinstaller\install.exe";#1
+        
+        # If setup.exe also needs admin rights, uncomment the line below:
+        # & $mtPath -manifest elevate.manifest.xml -outputresource:"ZipStage\windowsinstaller\setup.exe";#1
+      shell: pwsh
+
+    - name: Create Windows Installer ZIP
+      run: |
+        # We zip the contents of ZipStage so 'windowsinstaller' is the top-level folder
+        Compress-Archive -Path "ZipStage\windowsinstaller" -DestinationPath "WindowsInstaller.zip"
+      shell: pwsh
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v7.0.1
+      with:
+        name: WindowsInstaller-Package
+        path: WindowsInstaller.zip
+
+  create_release:
+    name: Create Release
+    needs: windows_installer_build
+    if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download Artifact
+      uses: actions/download-artifact@v8.0.1
+      with:
+        name: WindowsInstaller-Package
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'beta-latest' }}
+        files: WindowsInstaller.zip
+        draft: false
+        prerelease: ${{ github.ref == 'refs/heads/main' || contains(github.ref_name, '-') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
