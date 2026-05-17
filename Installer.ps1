@@ -50,7 +50,7 @@ if (Test-Path $StateFile) { $CurrentStep = Get-Content $StateFile }
 
 switch ($CurrentStep) {
     
-    # PHASE 0: UPDATES & REBOOT
+# PHASE 0: UPDATES & REBOOT
     0 {
         Write-Host "--- PHASE 0: Configuring Update Policies & Windows Updates ---" -ForegroundColor Cyan
         
@@ -88,8 +88,10 @@ switch ($CurrentStep) {
         # SETUP RESUME
         Set-State 1
         
-        # FIX: Point directly to the EXE path in quotes. 
-        # No 'powershell.exe' or '-File' needed for install.exe
+        # --- FIXES APPLIED HERE ---
+        # 1. Define $RunCmd so the registry actually gets a value (wrapped in quotes for spaces in paths)
+        $RunCmd = "`"$ExePath`""
+
         $RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce"
 
         # Check if the RunOnce key exists; if not, create it
@@ -97,8 +99,9 @@ switch ($CurrentStep) {
             New-Item -Path $RegistryPath -Force | Out-Null
         }
 
-        # Now safe to set the property
-        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce" -Name "ResumeUpdateScript" -Value $RunCmd
+        # 2. Use $RegistryPath consistently and apply the newly defined $RunCmd
+        Set-ItemProperty -Path $RegistryPath -Name "ResumeUpdateScript" -Value $RunCmd
+        # --------------------------
         
         Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
         Write-Host "`nRebooting to continue script..." -ForegroundColor Red
