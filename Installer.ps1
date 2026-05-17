@@ -98,7 +98,7 @@ switch ($CurrentStep) {
         }
 
         # Now safe to set the property
-        Set-ItemProperty -Path $RegistryPath -Name "ResumeUpdateScript" -Value $RunCmd
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce" -Name "ResumeUpdateScript" -Value $RunCmd
         
         Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
         Write-Host "`nRebooting to continue script..." -ForegroundColor Red
@@ -114,6 +114,10 @@ switch ($CurrentStep) {
 
         Write-Host "--- PHASE 1: Resuming - System Tweaks & Debloat ---" -ForegroundColor Cyan
         
+        # setting policy
+        $originalPolicy = Get-ExecutionPolicy
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine -Force
+
         # Explorer & Taskbar
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "LaunchTo" -Value 1
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
@@ -233,6 +237,11 @@ switch ($CurrentStep) {
         }
 
         Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
+
+        # setting original policy:
+        Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
+
+        #reboot
         Start-Sleep -Seconds 6000
         Restart-Computer -Force
     }
