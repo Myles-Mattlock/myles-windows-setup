@@ -90,8 +90,15 @@ switch ($CurrentStep) {
         
         # FIX: Point directly to the EXE path in quotes. 
         # No 'powershell.exe' or '-File' needed for install.exe
-        $RunCmd = "`"$ExePath`"" 
-        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce" -Name "ResumeUpdateScript" -Value $RunCmd
+        $RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce"
+
+        # Check if the RunOnce key exists; if not, create it
+        if (-not (Test-Path $RegistryPath)) {
+            New-Item -Path $RegistryPath -Force | Out-Null
+        }
+
+        # Now safe to set the property
+        Set-ItemProperty -Path $RegistryPath -Name "ResumeUpdateScript" -Value $RunCmd
         
         Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
         Write-Host "`nRebooting to continue script..." -ForegroundColor Red
@@ -226,7 +233,7 @@ switch ($CurrentStep) {
         }
 
         Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
-        Start-Sleep -Seconds 5
+        Start-Sleep -Seconds 6000
         Restart-Computer -Force
     }
 }
