@@ -227,7 +227,8 @@ switch ($CurrentStep) {
                 
         
         # Installs
-        .\windowsinstalle\ohmyposh.ps1
+        Get-ChildItem -Path .\windowsinstaller\ohmyposh.ps1 -Recurse | Unblock-File
+        .\windowsinstaller\ohmyposh.ps1
         winget install Google.Chrome bitwarden.bitwarden KDE.Kdenlive Valve.Steam --accept-source-agreements
 
         # Office
