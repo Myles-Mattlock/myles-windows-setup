@@ -61,7 +61,7 @@ switch ($CurrentStep) {
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine -Force
         
         if (Test-Path ".\WindowsInstaller\AddWifi.ps1") {
-            Write-Host "--- Adding Wifi connection -Evolved Ideas ---" -ForegroundColor Cyan
+            Write-Host "--- Adding Wifi connection -Home wifi ---" -ForegroundColor Cyan
             .\WindowsInstaller\AddWifi.ps1
             Start-Sleep -Seconds 15
         }
@@ -134,15 +134,15 @@ switch ($CurrentStep) {
         Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name SystemUsesLightTheme -Value 0
         Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
 
-        # Wallpaper
-        mkdir C:\Windows\Web\Wallpaper\Evolved-Ideas
-        $img = "WindowsInstaller\Evolved-Ideas-Background.png"
-        if (Test-Path $img) {
-            $dest = "C:\Windows\Web\Wallpaper\Evolved-Ideas\Evolved-Ideas-Background.png"
-            Copy-Item -Path $img -Destination $dest -Force
-            Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value $dest
-            rundll32.exe user32.dll, UpdatePerUserSystemParameters
-        }
+        # # Wallpaper
+        # mkdir C:\Windows\Web\Wallpaper\Myles
+        # $img = "WindowsInstaller\image.png"
+        # if (Test-Path $img) {
+        #     $dest = "C:\Windows\Web\Wallpaper\Myles\image.png"
+        #     Copy-Item -Path $img -Destination $dest -Force
+        #     Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value $dest
+        #     rundll32.exe user32.dll, UpdatePerUserSystemParameters
+        # }
 
         # Debloat
         $Removals = @(
@@ -169,12 +169,55 @@ switch ($CurrentStep) {
             "Microsoft Clipchamp", 
             "MSN Weather", 
             "microsoft 365 copilot", 
-            "McAfee Personal Security"
+            "McAfee Personal Security",
+            "Microsoft.Teams"
         )
         foreach ($app in $Removals) { winget remove $app --accept-source-agreements }
 
+        
+        #disable telmentry
+        # --- Registry Tweaks ---
+        $RegistrySettings = @(
+            @{ Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo"; Name = "Enabled"; Value = 0; Type = "DWord" },
+            @{ Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy"; Name = "TailoredExperiencesWithDiagnosticDataEnabled"; Value = 0; Type = "DWord" },
+            @{ Path = "HKCU:\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy"; Name = "HasAccepted"; Value = 0; Type = "DWord" },
+            @{ Path = "HKCU:\Software\Microsoft\Input\TIPC"; Name = "Enabled"; Value = 0; Type = "DWord" },
+            @{ Path = "HKCU:\Software\Microsoft\InputPersonalization"; Name = "RestrictImplicitInkCollection"; Value = 1; Type = "DWord" },
+            @{ Path = "HKCU:\Software\Microsoft\InputPersonalization"; Name = "RestrictImplicitTextCollection"; Value = 1; Type = "DWord" },
+            @{ Path = "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore"; Name = "HarvestContacts"; Value = 0; Type = "DWord" },
+            @{ Path = "HKCU:\Software\Microsoft\Personalization\Settings"; Name = "AcceptedPrivacyPolicy"; Value = 0; Type = "DWord" },
+            @{ Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection"; Name = "AllowTelemetry"; Value = 0; Type = "DWord" },
+            @{ Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "Start_TrackProgs"; Value = 0; Type = "DWord" },
+            @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System"; Name = "PublishUserActivities"; Value = 0; Type = "DWord" },
+            @{ Path = "HKCU:\Software\Microsoft\Siuf\Rules"; Name = "NumberOfSIUFInPeriod"; Value = 0; Type = "DWord" }
+        )
+
+        foreach ($Reg in $RegistrySettings) {
+            if (-not (Test-Path $Reg.Path)) {
+                New-Item -Path $Reg.Path -Force | Out-Null
+            }
+            Set-ItemProperty -Path $Reg.Path -Name $Reg.Name -Value $Reg.Value -Type $Reg.Type
+        }
+
+        # --- Invoke Scripts ---
+
+        # Disable (Connected User Experiences and Telemetry) Service
+        Stop-Service -Name diagtrack -ErrorAction SilentlyContinue
+        Set-Service -Name diagtrack -StartupType Disabled -ErrorAction SilentlyContinue
+
+        # Disable (Windows Error Reporting Manager) Service
+        Stop-Service -Name wermgr -ErrorAction SilentlyContinue
+        Set-Service -Name wermgr -StartupType Disabled -ErrorAction SilentlyContinue
+
+        # Remove specific PeriodInNanoSeconds property
+        Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
+
+        Write-Host "Telemetry tweaks applied (Skipped non-existent services)." -ForegroundColor Green
+                
+        
         # Installs
-        winget install Microsoft.Teams Google.Chrome DisplayLink.GraphicsDriver --accept-source-agreements
+        .\ohmyposh.ps1
+        winget install Google.Chrome bitwarden.bitwarden KDE.Kdenlive Valve.Steam --accept-source-agreements
 
         # Office
         if (Test-Path ".\WindowsInstaller\OfficeSetup.exe") {

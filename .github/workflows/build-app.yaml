@@ -32,14 +32,14 @@ jobs:
         New-Item -ItemType Directory -Force -Path "ZipStage\windowsinstaller\windowsinstaller"
         
         # 3. Compile installer.ps1 -> install.exe (placed in root)
-        ps2exe -InputFile installer.ps1 -OutputFile 'ZipStage\windowsinstaller\install.exe' -IconFile Evolve.ico -version '2.0.0'
+        ps2exe -InputFile installer.ps1 -OutputFile 'ZipStage\windowsinstaller\install.exe' -version '1.0.0'
         
         # 4. Copy existing setup.exe from repo to root
         Copy-Item -Path "setup.exe" -Destination "ZipStage\windowsinstaller\setup.exe"
         
         # 5. Copy repo files into the nested 'windowsinstaller' folder
         # This excludes the ZipStage itself to avoid infinite loops
-        Get-ChildItem -Exclude "ZipStage", ".git", ".github", ".gitignore", "elevate.manifest.xml", "Evolve.ico", "InstallApplications.ps1", "Installer.ps1", "set-execution-policy.reg", "ToDo", "UpdatePolicy.ps1", "Setup.exe"| Copy-Item -Destination "ZipStage\windowsinstaller\windowsinstaller" -Recurse -Force
+        Get-ChildItem -Exclude "ZipStage", ".git", ".github", ".gitignore", "elevate.manifest.xml", "InstallApplications.ps1", "Installer.ps1", "set-execution-policy.reg", "ToDo", "UpdatePolicy.ps1", "Setup.exe"| Copy-Item -Destination "ZipStage\windowsinstaller\windowsinstaller" -Recurse -Force
       shell: pwsh
 
     - name: Embed Admin Manifests (mt.exe)
