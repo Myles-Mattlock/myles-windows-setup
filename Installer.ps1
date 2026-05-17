@@ -216,7 +216,7 @@ switch ($CurrentStep) {
                 
         
         # Installs
-        ./WindowsInstaller/ohmyposh.ps1
+        .\ohmyposh.ps1
         winget install Google.Chrome bitwarden.bitwarden KDE.Kdenlive Valve.Steam --accept-source-agreements
 
         # Office
