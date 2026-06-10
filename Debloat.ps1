@@ -1,58 +1,6 @@
-#######################################################################
-# --- 1. SINGLE INSTANCE LOCK ---
-#######################################################################
-# This prevents the "Twin Window" bug. Only one instance can exist.
-$Mutex = New-Object System.Threading.Mutex($false, "Global\MylesUpdateToolLock")
-if (!$Mutex.WaitOne(0)) {
-    exit
-}
-
-#######################################################################
-# --- 2. PERSISTENCE & ADMIN LOGIC (EXE VERSION) ---
-#######################################################################
-$Mutex = New-Object System.Threading.Mutex($false, "Global\MylesInstallExeLock")
-if (!$Mutex.WaitOne(0)) { exit }
-
-$StateFile = "$env:TEMP\UpdateScriptState.txt"
-
-# Get the actual path of the install.exe file
-$ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-$WorkingDir = Split-Path -Parent $ExePath
-
-# Ensure the EXE works out of its own folder
-Set-Location $WorkingDir
-
-function Set-State {
-    param([int]$Step)
-    $Step | Out-File -FilePath $StateFile -Force
-}
-
-function Clear-Persistence {
-    Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce" -Name "ResumeUpdateScript" -ErrorAction SilentlyContinue
-    if (Test-Path $StateFile) { Remove-Item $StateFile -Force }
-}
-
-# --- ADMIN CHECK ---
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    # Launch the EXE directly, no powershell arguments needed
-    Start-Process "$ExePath" -Verb RunAs
-    exit
-}
-
-# Determine Current Step
-$CurrentStep = 0
-if (Test-Path $StateFile) { $CurrentStep = Get-Content $StateFile }
-
-#######################################################################
-# --- 3. EXECUTION PHASES ---
-#######################################################################
-
-switch ($CurrentStep) {
-    
 # PHASE 0: UPDATES & REBOOT
     0 {
-        Write-Host "--- PHASE 0: Configuring Update Policies & Windows Updates ---" -ForegroundColor Cyan
+        Write-Host "--- PHASE 0: Configuring Update Policies ---" -ForegroundColor Cyan
         
         # Check if the sub-script exists before running
         $originalPolicy = Get-ExecutionPolicy
@@ -79,51 +27,12 @@ switch ($CurrentStep) {
         Set-ItemProperty -Path $WU -Name "DeferQualityUpdatesPeriodInDays" -Value 4
         Set-ItemProperty -Path $WU -Name "EnableOptionalUpdates" -Value 0
         gpupdate /force
-
-        # Dependencies
-        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.208 -Force -Scope CurrentUser
-        Install-Module PSWindowsUpdate -Force -Scope CurrentUser
         
         # Run Updates
-        Import-Module PSWindowsUpdate
-        Install-WindowsUpdate -ForceDownload -ForceInstall -Confirm:$false -IgnoreReboot
-        winget update --all --accept-source-agreements --accept-package-agreements
-
-        # SETUP RESUME
-        Set-State 1
-        
-        # --- FIXES APPLIED HERE ---
-        # 1. Define $RunCmd so the registry actually gets a value (wrapped in quotes for spaces in paths)
-        $RunCmd = "`"$ExePath`""
-
-        $RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce"
-
-        # Check if the RunOnce key exists; if not, create it
-        if (-not (Test-Path $RegistryPath)) {
-            New-Item -Path $RegistryPath -Force | Out-Null
-        }
-
-        # 2. Use $RegistryPath consistently and apply the newly defined $RunCmd
-        Set-ItemProperty -Path $RegistryPath -Name "ResumeUpdateScript" -Value $RunCmd
+        winget update --accept-source-agreements --accept-package-agreements
         # --------------------------
-        
-        Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
-        Write-Host "`nRebooting to continue script..." -ForegroundColor Red
-        Start-Sleep -Seconds 5
-        Restart-Computer -Force
-        exit
-    }
 
-    # PHASE 1: UI, DEBLOAT & INSTALLS
-    1 {
-        # FIRST ACTION: Wipe the registry key so no duplicates can trigger
-        Clear-Persistence
-
-        Write-Host "--- PHASE 1: Resuming - System Tweaks & Debloat ---" -ForegroundColor Cyan
-        
-        # setting policy
-        $originalPolicy = Get-ExecutionPolicy
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine -Force
+        Write-Host "System Tweaks & Debloat ---" -ForegroundColor Cyan
 
         # Explorer & Taskbar
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "LaunchTo" -Value 1
@@ -231,18 +140,6 @@ switch ($CurrentStep) {
         Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
 
         Write-Host "Telemetry tweaks applied (Skipped non-existent services)." -ForegroundColor Green
-                
-        
-        # Installs
-        Get-ChildItem -Path .\windowsinstaller\ohmyposh.ps1 -Recurse | Unblock-File
-        .\windowsinstaller\ohmyposh.ps1
-        winget install Google.Chrome bitwarden.bitwarden KDE.Kdenlive Valve.Steam --accept-source-agreements
-
-        # Office
-        if (Test-Path ".\WindowsInstaller\OfficeSetup.exe") {
-            Write-Host "Starting Office Setup..." -ForegroundColor Yellow
-            Start-Process -FilePath ".\WindowsInstaller\OfficeSetup.exe" -Wait
-        }
 
         Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
 
