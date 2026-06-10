@@ -95,7 +95,11 @@ $Removals = @(
     "MSN Weather", 
     "microsoft 365 copilot", 
     "McAfee Personal Security",
-    "Microsoft.Teams"
+    "Microsoft.Teams",
+    "Microsoft Bing",
+    "Get Help",
+    "Dev Home",
+    "Phone Link"
 )
 foreach ($app in $Removals) { winget remove $app --accept-source-agreements }
 
