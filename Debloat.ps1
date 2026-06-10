@@ -71,13 +71,18 @@ Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
 
 #stop services
 $servicesToStop = @(
-    "Widget"
+    "wermgr",
+    "DiagTrack",
+    "MapsBroker",
+    "CscService"
 )
 
 foreach ($service in $servicesToStop) {
     Stop-Service -Name $service
     Set-Service -Name $service -StartupType Disabled
 }
+
+Get-Process *Widget* | Stop-Process -Force -ErrorAction SilentlyContinue
 
 # Debloat
 $Removals = @(
@@ -141,15 +146,10 @@ foreach ($Reg in $RegistrySettings) {
     Set-ItemProperty -Path $Reg.Path -Name $Reg.Name -Value $Reg.Value -Type $Reg.Type
 }
 
-# --- Invoke Scripts ---
 
-# Disable (Connected User Experiences and Telemetry) Service
-Stop-Service -Name diagtrack -ErrorAction SilentlyContinue
-Set-Service -Name diagtrack -StartupType Disabled -ErrorAction SilentlyContinue
 
-# Disable (Windows Error Reporting Manager) Service
-Stop-Service -Name wermgr -ErrorAction SilentlyContinue
-Set-Service -Name wermgr -StartupType Disabled -ErrorAction SilentlyContinue
+#Disable store searches in start menu
+icacls "$Env:LocalAppData\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalState\store.db" /deny Everyone:F
 
 # Remove specific PeriodInNanoSeconds property
 Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
