@@ -75,8 +75,8 @@ $servicesToStop = @(
 )
 
 foreach ($service in $servicesToStop) {
-    Stop-Service -Name $service -ErrorAction SilentlyContinue
-    Set-Service -Name $service -StartupType Disabled -ErrorAction SilentlyContinue
+    Stop-Service -Name $service
+    Set-Service -Name $service -StartupType Disabled
 }
 
 # Debloat
