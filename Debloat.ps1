@@ -1,5 +1,4 @@
-# PHASE 0: UPDATES & REBOOT
-    0 {
+{
         Write-Host "--- PHASE 0: Configuring Update Policies ---" -ForegroundColor Cyan
         
         # Check if the sub-script exists before running
@@ -150,4 +149,3 @@
         Start-Sleep -Seconds 6000
         Restart-Computer -Force
     }
-}
