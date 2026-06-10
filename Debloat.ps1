@@ -99,7 +99,10 @@ $Removals = @(
     "Microsoft Bing",
     "Get Help",
     "Dev Home",
-    "Phone Link"
+    "Phone Link",
+    "Cross Device Experience Host",
+    "Windows Web Experience Pack",
+    "Widgets Platform Runtime"
 )
 foreach ($app in $Removals) { winget remove $app --accept-source-agreements }
 
