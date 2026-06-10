@@ -71,7 +71,6 @@ Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
 
 #stop services
 $servicesToStop = @(
-    "wermgr",
     "DiagTrack",
     "MapsBroker",
     "CscService"
@@ -146,7 +145,9 @@ foreach ($Reg in $RegistrySettings) {
     Set-ItemProperty -Path $Reg.Path -Name $Reg.Name -Value $Reg.Value -Type $Reg.Type
 }
 
-
+# Disable (Windows Error Reporting Manager) Service
+Stop-Service -Name wermgr
+Set-Service -Name wermgr -StartupType Disabled 
 
 #Disable store searches in start menu
 icacls "$Env:LocalAppData\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalState\store.db" /deny Everyone:F
