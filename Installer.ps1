@@ -223,10 +223,6 @@ switch ($CurrentStep) {
         Stop-Service -Name diagtrack -ErrorAction SilentlyContinue
         Set-Service -Name diagtrack -StartupType Disabled -ErrorAction SilentlyContinue
 
-        # Disable (Windows Error Reporting Manager) Service
-        Stop-Service -Name wermgr -ErrorAction SilentlyContinue
-        Set-Service -Name wermgr -StartupType Disabled -ErrorAction SilentlyContinue
-
         # Remove specific PeriodInNanoSeconds property
         Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
 
