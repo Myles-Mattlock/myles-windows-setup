@@ -69,6 +69,16 @@ Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
 #     rundll32.exe user32.dll, UpdatePerUserSystemParameters
 # }
 
+#stop services
+$servicesToStop = @(
+    "Widget"
+)
+
+foreach ($service in $servicesToStop) {
+    Stop-Service -Name $service -ErrorAction SilentlyContinue
+    Set-Service -Name $service -StartupType Disabled -ErrorAction SilentlyContinue
+}
+
 # Debloat
 $Removals = @(
     "Copilot", 
