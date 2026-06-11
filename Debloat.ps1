@@ -162,7 +162,57 @@ Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
 # setting original policy:
 Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
 
-#reboot
-Start-Sleep -Seconds 6000
-Restart-Computer -Force
+#Remove Edge
+function Remove-MicrosoftEdge {
+    <#
+    .SYNOPSIS
+        Removes Microsoft Edge by lifting uninstaller restrictions.
+    .DESCRIPTION
+        Modifies the registry to allow Edge to be uninstalled, 
+        then runs the native setup installer with the uninstall flags.
+    #>
+    Write-Host "Removing Microsoft Edge..." -ForegroundColor Yellow
+    
+    # 1. Change registry key to make Edge uninstallable
+    $RegPath = "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge"
+    if (Test-Path $RegPath) {
+        Set-ItemProperty -Path $RegPath -Name "NoRemove" -Value 0 -ErrorAction SilentlyContinue
+    }
+
+    # 2. Locate the installer directory and run the uninstaller
+    $EdgePaths = @(
+        "${env:ProgramFiles(x86)}\Microsoft\Edge\Application",
+        "${env:ProgramFiles}\Microsoft\Edge\Application"
+    )
+
+    foreach ($Path in $EdgePaths) {
+        if (Test-Path $Path) {
+            # Find setup.exe inside the version-numbered folder
+            $SetupExe = Get-ChildItem -Path $Path -Filter "setup.exe" -Recurse | Select-Object -First 1
+            if ($SetupExe) {
+                $Arguments = "--uninstall --system-level --verbose-logging --force-uninstall"
+                Start-Process -FilePath $SetupExe.FullName -ArgumentList $Arguments -Wait -NoNewWindow
+                Write-Host "Edge removal command executed." -ForegroundColor Green
+                return
+            }
+        }
+    }
+    Write-Warning "Microsoft Edge setup.exe not found. It might already be removed."
+}
+
+function Install-MicrosoftEdge {
+    <#
+    .SYNOPSIS
+        Reverses the tweak by reinstalling Microsoft Edge via Winget.
+    #>
+    Write-Host 'Installing Microsoft Edge...' -ForegroundColor Cyan
+    winget install Microsoft.Edge --source winget
+}
+
+# --- Execution ---
+# Run this script as an Administrator.
+# Uncomment the line you want to use:
+
+# Remove-MicrosoftEdge
+# Install-MicrosoftEdge
 
