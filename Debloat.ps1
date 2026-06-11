@@ -166,23 +166,19 @@ foreach ($Reg in $RegistrySettings) {
     Set-ItemProperty -Path $Reg.Path -Name $Reg.Name -Value $Reg.Value -Type $Reg.Type
 }
 
+# Remove specific PeriodInNanoSeconds property
+Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
 
-
-
+Write-Host "Telemetry tweaks applied (Skipped non-existent services)." -ForegroundColor Green
 
 #Remove Edge
 # Ensure script is running as Administrator
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Error "Please run this script as an Administrator."
-    Exit
-}
-
 Write-Host "Removing Microsoft Edge..." -ForegroundColor Yellow
 
 # 1. Unblock the uninstaller by modifying the registry
 $RegPath = "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge"
 if (Test-Path $RegPath) {
-    Set-ItemProperty -Path $RegPath -Name "NoRemove" -Value 0 -ErrorAction SilentlyContinue
+    Set-ItemProperty -Path $RegPath -Name "NoRemove" -Value 0
 }
 
 # 2. Look for setup.exe in standard Edge directories
@@ -212,11 +208,6 @@ foreach ($Path in $EdgePaths) {
 if (-not $Executed) {
     Write-Warning "Microsoft Edge uninstaller (setup.exe) was not found. It may already be removed."
 }
-
-# Remove specific PeriodInNanoSeconds property
-Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
-
-Write-Host "Telemetry tweaks applied (Skipped non-existent services)." -ForegroundColor Green
 
 Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
 
