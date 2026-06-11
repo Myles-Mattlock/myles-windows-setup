@@ -39,6 +39,22 @@ $tb = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Taskbar
 if (-not (Test-Path $tb)) { New-Item -Path $tb -Force | Out-Null }
 Set-ItemProperty -Path $tb -Name "TaskbarEndTask" -Value 1
 
+# verbose output on login and logout
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "VerboseStatus" -Value 1 -Type DWord
+
+# Disable store searches and bing search in start menu
+icacls "$Env:LocalAppData\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalState\store.db" /deny Everyone:F
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name "BingSearchEnabled" -Value 0 -Type DWord
+
+# remove task view button
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "ShowTaskViewButton" -Value 0 -Type DWord
+
+# Set list view on start menu
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start" -Name "AllAppsViewMode" -Value 2 -Type DWord
+
+# Ensure the "All Apps" / "More Programs" list is NOT hidden (removes the restriction)
+Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoStartMenuMorePrograms" -ErrorAction SilentlyContinue
+
 #########################Myles CleanUp-Tool############################
 .\Setup.exe
 #######################################################################
@@ -120,7 +136,8 @@ $Removals = @(
     "Xbox TCUI",
     "Game Bar",
     "Xbox Identity Provider",
-    "Game Speech Window"
+    "Game Speech Window",
+    "Start Experiences App"
 )
 foreach ($app in $Removals) { winget remove $app --accept-source-agreements }
 
@@ -149,18 +166,9 @@ foreach ($Reg in $RegistrySettings) {
     Set-ItemProperty -Path $Reg.Path -Name $Reg.Name -Value $Reg.Value -Type $Reg.Type
 }
 
-#Disable store searches in start menu
-icacls "$Env:LocalAppData\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalState\store.db" /deny Everyone:F
 
-# Remove specific PeriodInNanoSeconds property
-Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
 
-Write-Host "Telemetry tweaks applied (Skipped non-existent services)." -ForegroundColor Green
 
-Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
-
-# setting original policy:
-Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
 
 #Remove Edge
 # Ensure script is running as Administrator
@@ -205,3 +213,12 @@ if (-not $Executed) {
     Write-Warning "Microsoft Edge uninstaller (setup.exe) was not found. It may already be removed."
 }
 
+# Remove specific PeriodInNanoSeconds property
+Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
+
+Write-Host "Telemetry tweaks applied (Skipped non-existent services)." -ForegroundColor Green
+
+Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
+
+# setting original policy:
+Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
