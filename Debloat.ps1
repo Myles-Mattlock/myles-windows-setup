@@ -117,7 +117,10 @@ $Removals = @(
     "Cross Device Experience Host",
     "Windows Web Experience Pack",
     "Widgets Platform Runtime",
-    "xbox game overlay"
+    "Xbox TCUI",
+    "Game Bar",
+    "Xbox Identity Provider",
+    "Game Speech Window"
 )
 foreach ($app in $Removals) { winget remove $app --accept-source-agreements }
 
