@@ -56,6 +56,22 @@ $tb = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Taskbar
 if (-not (Test-Path $tb)) { New-Item -Path $tb -Force | Out-Null }
 Set-ItemProperty -Path $tb -Name "TaskbarEndTask" -Value 1
 
+# Restore Classic Right-Click Context Menu (Instant load, no "Show More Options" lag)
+$ClassicMenu = "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32"
+if (-not (Test-Path $ClassicMenu)) { New-Item -Path $ClassicMenu -Force | Out-Null }
+Set-ItemProperty -Path $ClassicMenu -Name "(Default)" -Value "" -Force
+
+# Disable consumer features (prevents automatic installation of sponsored apps/shortcuts)
+$CloudContent = "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+if (-not (Test-Path $CloudContent)) { New-Item -Path $CloudContent -Force | Out-Null }
+Set-ItemProperty -Path $CloudContent -Name "ContentDeliveryAllowed" -Value 0 -Type DWord
+Set-ItemProperty -Path $CloudContent -Name "OemPreInstalledAppsEnabled" -Value 0 -Type DWord
+Set-ItemProperty -Path $CloudContent -Name "PreInstalledAppsEnabled" -Value 0 -Type DWord
+Set-ItemProperty -Path $CloudContent -Name "PreInstalledAppsRemovalEnabled" -Value 1 -Type DWord
+Set-ItemProperty -Path $CloudContent -Name "SystemPaneSuggestionsEnabled" -Value 0 -Type DWord
+Set-ItemProperty -Path $CloudContent -Name "SubscribedContent-338388Enabled" -Value 0 -Type DWord
+Set-ItemProperty -Path $CloudContent -Name "SubscribedContent-338389Enabled" -Value 0 -Type DWord
+
 # verbose output on login and logout
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "VerboseStatus" -Value 1 -Type DWord
 
@@ -95,26 +111,23 @@ Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Pe
 Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name SystemUsesLightTheme -Value 0
 Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
 
-# # Wallpaper
-# mkdir C:\Windows\Web\Wallpaper\Myles
-# $img = "WindowsInstaller\image.png"
-# if (Test-Path $img) {
-#     $dest = "C:\Windows\Web\Wallpaper\Myles\image.png"
-#     Copy-Item -Path $img -Destination $dest -Force
-#     Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value $dest
-#     rundll32.exe user32.dll, UpdatePerUserSystemParameters
-# }
-
 #stop services
 $servicesToStop = @(
     "DiagTrack",
     "MapsBroker",
-    "CscService"
+    "CscService",
+    "XblAuthManager",
+    "XblGameSave",
+    "XboxNetApiSvc",
+    "PhoneSvc",
+    "PaymentsSvc"
 )
 
 foreach ($service in $servicesToStop) {
-    Stop-Service -Name $service
-    Set-Service -Name $service -StartupType Disabled
+    if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
+        Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
+        Set-Service -Name $service -StartupType Disabled
+    }
 }
 
 Get-Process *Widget* | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -188,17 +201,27 @@ foreach ($Reg in $RegistrySettings) {
 
 # disable powershell7 telemetry
 Write-Host "Disabling PowerShell 7 Telemetry..." -ForegroundColor Yellow
-
-# Sets the environment variable globally at the Machine level
 [Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1', 'Machine')
-
-# Updates the current running script session immediately so you don't have to restart the terminal
 $env:POWERSHELL_TELEMETRY_OPTOUT = '1'
-
 Write-Host "PowerShell 7 Telemetry disabled successfully." -ForegroundColor Green
 
 # Remove specific PeriodInNanoSeconds property
 Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
+
+# Disable Telemetry and Data Collection Scheduled Tasks
+Write-Host "Disabling Scheduled Tasks for Telemetry..." -ForegroundColor Yellow
+$Tasks = @(
+    "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser",
+    "Microsoft\Windows\Application Experience\ProgramDataUpdater",
+    "Microsoft\Windows\Application Experience\StartupAppTask",
+    "Microsoft\Windows\Customer Experience Improvement Program\Consolidator",
+    "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip",
+    "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector",
+    "Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem"
+)
+foreach ($Task in $Tasks) {
+    Disable-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue
+}
 
 Write-Host "Telemetry tweaks applied (Skipped non-existent services)." -ForegroundColor Green
 
@@ -240,11 +263,10 @@ if (-not $Executed) {
     Write-Warning "Microsoft Edge uninstaller (setup.exe) was not found. It may already be removed."
 }
 
-Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
-
-# setting original policy:
+# Final Policy Reset & Trigger Update Sync Check
 Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
 
+Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
 Write-Host "A Restart is required for all changes to take effect." -ForegroundColor Red
 
 Write-Host "Press any key to exit..."
