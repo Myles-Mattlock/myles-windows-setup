@@ -1,3 +1,14 @@
+if ($null -eq $env:WT_SESSION) {
+    if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
+        # Get the literal path of the running .exe file
+        $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+        
+        # Relaunch the EXE inside Windows Terminal and exit the legacy console
+        Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
+        Exit
+    }
+}
+
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
