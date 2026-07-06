@@ -1,13 +1,13 @@
-if ($null -eq $env:WT_SESSION) {
-    if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
-        # Get the literal path of the running .exe file
-        $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+# if ($null -eq $env:WT_SESSION) {
+#     if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
+#         # Get the literal path of the running .exe file
+#         $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
         
-        # Relaunch the EXE inside Windows Terminal and exit the legacy console
-        Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
-        Exit
-    }
-}
+#         # Relaunch the EXE inside Windows Terminal and exit the legacy console
+#         Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
+#         Exit
+#     }
+# }
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
@@ -44,7 +44,7 @@ Set-ItemProperty -Path $WU -Name "EnableOptionalUpdates" -Value 0
 gpupdate /force
 
 # Run Updates
-winget update --accept-source-agreements --accept-package-agreements
+winget update --all --accept-source-agreements --accept-package-agreements
 # --------------------------
 
 Write-Host "System Tweaks & Debloat ---" -ForegroundColor Cyan
@@ -230,3 +230,9 @@ Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
 
 # setting original policy:
 Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
+
+Write-Host "A Restart is required for all changes to take effect." -ForegroundColor Red
+
+Write-Host "Press any key to exit..."
+$null = [Console]::ReadKey($true)
+Exit
