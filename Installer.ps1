@@ -73,10 +73,13 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start" -
 Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoStartMenuMorePrograms" -ErrorAction SilentlyContinue
 
 #########################Myles CleanUp-Tool############################
+Set-Location windowsinstaller
 .\Setup.exe
+Set-Location ..
 #######################################################################
 
 # Disable Recall
+write-Host "Disabling Recall..." -ForegroundColor Yellow
 DISM /Online /Disable-Feature /FeatureName=Recall /NoRestart
 
 # Security
