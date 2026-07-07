@@ -279,7 +279,7 @@ if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
     Exit
 }
 
-Write-Host "A Restart is required for all changes to take effect." -ForegroundColor Red
+Write-Host "A Restart is required for all changes to take effect." -ForegroundColor Yellow
 
 Write-Host "Press any key to exit..."
 $null = [Console]::ReadKey($true)
