@@ -73,14 +73,16 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start" -
 Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoStartMenuMorePrograms" -ErrorAction SilentlyContinue
 
 #########################Myles CleanUp-Tool############################
-Get-ChildItem -Path .\windowsinstaller\setup.exe-Recurse | Unblock-File
-.\windowsinstaller\Setup.exe
+Set-Location windowsinstaller
+Get-ChildItem -Path .\Setup.exe -Recurse | Unblock-File
+.\Setup.exe
+
 #######################################################################
 
 ###########################ohmyposh theme##############################
-Get-ChildItem -Path .\windowsinstaller\ohmyposh.ps1 -Recurse | Unblock-File
-
-.\windowsinstaller\ohmyposh.ps1
+Get-ChildItem -Path .\ohmyposh.ps1 -Recurse | Unblock-File
+.\ohmyposh.ps1
+Set-Location ..
 #######################################################################
 
 # Disable Recall
