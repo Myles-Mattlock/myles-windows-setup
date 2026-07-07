@@ -1,19 +1,19 @@
-if ($null -eq $env:WT_SESSION) {
-    if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
-        # Get the literal path of the running .exe file
-        $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+# if ($null -eq $env:WT_SESSION) {
+#     if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
+#         # Get the literal path of the running .exe file
+#         $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
         
-        # Relaunch the EXE inside Windows Terminal and exit the legacy console
-        Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
-        Exit
-    }
-}
+#         # Relaunch the EXE inside Windows Terminal and exit the legacy console
+#         Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
+#         Exit
+#     }
+# }
 
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    exit
-}
+# $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+# if (-not $isAdmin) {
+#     Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+#     exit
+# }
 
 Write-Host "--- PHASE 0: Configuring Update Policies ---" -ForegroundColor Cyan
 
@@ -52,6 +52,8 @@ Write-Host "System Tweaks & Debloat ---" -ForegroundColor Cyan
 # Explorer & Taskbar
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "LaunchTo" -Value 1
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "AutoCheckSelect" -Value 1
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
 $tb = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings"
 if (-not (Test-Path $tb)) { New-Item -Path $tb -Force | Out-Null }
 Set-ItemProperty -Path $tb -Name "TaskbarEndTask" -Value 1
@@ -71,19 +73,6 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start" -
 
 # Ensure the "All Apps" / "More Programs" list is NOT hidden (removes the restriction)
 Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoStartMenuMorePrograms" -ErrorAction SilentlyContinue
-
-#########################Myles CleanUp-Tool############################
-Set-Location windowsinstaller
-Get-ChildItem -Path .\Setup.exe -Recurse | Unblock-File
-.\Setup.exe
-
-#######################################################################
-
-###########################ohmyposh theme##############################
-Get-ChildItem -Path .\ohmyposh.ps1 -Recurse | Unblock-File
-.\ohmyposh.ps1
-Set-Location ..
-#######################################################################
 
 # Disable Recall
 write-Host "Disabling Recall..." -ForegroundColor Yellow
@@ -193,6 +182,21 @@ foreach ($Reg in $RegistrySettings) {
     Set-ItemProperty -Path $Reg.Path -Name $Reg.Name -Value $Reg.Value -Type $Reg.Type
 }
 
+#########################Myles CleanUp-Tool############################
+Set-Location windowsinstaller
+Get-ChildItem -Path .\Setup.exe -Recurse | Unblock-File
+.\Setup.exe
+
+#######################################################################
+
+###########################ohmyposh theme##############################
+Get-ChildItem -Path .\ohmyposh.ps1 -Recurse | Unblock-File
+.\ohmyposh.ps1
+Set-Location ..
+
+wait -Seconds 60
+#######################################################################
+
 # disable powershell7 telemetry
 Write-Host "Disabling PowerShell 7 Telemetry..." -ForegroundColor Yellow
 
@@ -248,6 +252,8 @@ if (-not $Executed) {
 }
 
 Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
+
+C:\program Files\SystemCleanup\SystemCleanup.exe
 
 # setting original policy:
 Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
