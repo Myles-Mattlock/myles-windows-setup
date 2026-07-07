@@ -1,19 +1,19 @@
-if ($null -eq $env:WT_SESSION) {
-    if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
-        # Get the literal path of the running .exe file
-        $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+# if ($null -eq $env:WT_SESSION) {
+#     if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
+#         # Get the literal path of the running .exe file
+#         $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
         
-        # Relaunch the EXE inside Windows Terminal and exit the legacy console
-        Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
-        Exit
-    }
-}
+#         # Relaunch the EXE inside Windows Terminal and exit the legacy console
+#         Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
+#         Exit
+#     }
+# }
 
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    exit
-}
+# $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+# if (-not $isAdmin) {
+#     Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+#     exit
+# }
 
 Write-Host "--- PHASE 0: Configuring Update Policies ---" -ForegroundColor Cyan
 
@@ -253,7 +253,28 @@ if (-not $Executed) {
 
 Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
 
-C:\program Files\SystemCleanup\SystemCleanup.exe
+# Load the Windows Forms assembly for the UI
+Add-Type -AssemblyName System.Windows.Forms
+
+# Define the message box text and buttons
+$title = "System Cleanup"
+$message = "Would you like to run the System Cleanup tool?"
+$buttons = [System.Windows.Forms.MessageBoxButtons]::YesNo
+$icon = [System.Windows.Forms.MessageBoxIcon]::Question
+
+# Display the pop-up and capture the user's choice
+$choice = [System.Windows.Forms.MessageBox]::Show($message, $title, $buttons, $icon)
+
+# Process the response
+if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
+    Write-Host "Starting System Cleanup..."
+    
+    # Run the executable safely using the Call operator (&)
+    & 'C:\Program Files\SystemCleanUp\System CleanUp.exe'
+} else {
+    Write-Host "Cleanup canceled by user. Quitting."
+    Exit
+}
 
 # setting original policy:
 Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
