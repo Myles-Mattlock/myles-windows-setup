@@ -252,7 +252,10 @@ if (-not $Executed) {
 }
 
 Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
+# setting original policy:
+Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
 
+#Ask if cleanup tool should be run
 # Load the Windows Forms assembly for the UI
 Add-Type -AssemblyName System.Windows.Forms
 
@@ -272,14 +275,9 @@ if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
     # Run the executable safely using the Call operator (&)
     & 'C:\Program Files\SystemCleanUp\System CleanUp.exe'
 } else {
-    Write-Host "Cleanup canceled by user. Quitting."
+    Write-Host "A Restart is required for all changes to take effect. Cleanup tool was not run, but can be executed later from the desktop." -ForegroundColor Yellow
     Exit
 }
-
-# setting original policy:
-Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
-
-Write-Host "A Restart is required for all changes to take effect." -ForegroundColor Red
 
 Write-Host "Press any key to exit..."
 $null = [Console]::ReadKey($true)
