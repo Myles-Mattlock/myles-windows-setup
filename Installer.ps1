@@ -47,7 +47,7 @@ gpupdate /force
 winget update --all --accept-source-agreements --accept-package-agreements
 
 # Install packages
-winget install --accept-source-agreements --accept-package-agreements google.chrome microsoft.powershell
+winget install microsoft.powershell google.chrome --accept-source-agreements --accept-package-agreements
 # --------------------------
 
 Write-Host "System Tweaks & Debloat ---" -ForegroundColor Cyan
