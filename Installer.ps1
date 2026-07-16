@@ -242,7 +242,7 @@ foreach ($Path in $EdgePaths) {
             $Arguments = "--uninstall --system-level --verbose-logging --force-uninstall"
             
             # Run the uninstaller and wait for it to complete
-            Start-Process -FilePath $SetupExe.FullName -ArgumentList $Arguments -Wait -NoNewWindow
+            Start-Process -FilePath $SetupExe.FullName -ArgumentList $Arguments -NoNewWindow
             Write-Host "Edge removal command executed successfully." -ForegroundColor Green
             $Executed = $true
             break
