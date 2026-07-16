@@ -43,11 +43,11 @@ Set-ItemProperty -Path $WU -Name "DeferQualityUpdatesPeriodInDays" -Value 4
 Set-ItemProperty -Path $WU -Name "EnableOptionalUpdates" -Value 0
 gpupdate /force
 
-# Run Updates
-winget update --all --accept-source-agreements --accept-package-agreements
-
 # Install packages
 winget install microsoft.powershell google.chrome --accept-source-agreements --accept-package-agreements
+
+# Run Updates
+winget update --all --accept-source-agreements --accept-package-agreements
 # --------------------------
 
 Write-Host "System Tweaks & Debloat ---" -ForegroundColor Cyan
