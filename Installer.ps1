@@ -193,11 +193,11 @@ Get-ChildItem -Path .\Setup.exe -Recurse | Unblock-File
 #######################################################################
 
 ###########################ohmyposh theme##############################
-Get-ChildItem -Path .\ohmyposh.ps1 -Recurse | Unblock-File
-.\ohmyposh.ps1
-Set-Location ..
+# Get-ChildItem -Path .\ohmyposh.ps1 -Recurse | Unblock-File
+# .\ohmyposh.ps1
+wt new-tab pwsh -Command "irm https://github.com/Myles-Mattlock/ohmyposh/raw/main/setup.ps1 | iex"
 
-wait -Seconds 60
+Set-Location ..
 #######################################################################
 
 # disable powershell7 telemetry
