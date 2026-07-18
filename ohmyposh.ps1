@@ -1,1 +1,0 @@
-wt new-tab pwsh -NoExit -Command "irm https://github.com/Myles-Mattlock/ohmyposh/raw/main/setup.ps1 | iex"

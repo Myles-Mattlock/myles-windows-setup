@@ -160,6 +160,7 @@ $Removals = @(
 )
 foreach ($app in $Removals) { winget remove $app --accept-source-agreements }
 
+dism /Online /Disable-Feature /FeatureName:MediaPlayback /FeatureName:MSRDC-Infrastructure /FeatureName:SMBDirect /FeatureName:WorkFolders-Client
 
 #disable telmentry
 # --- Registry Tweaks ---
