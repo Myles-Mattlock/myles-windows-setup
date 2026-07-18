@@ -1,19 +1,19 @@
-if ($null -eq $env:WT_SESSION) {
-    if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
-        # Get the literal path of the running .exe file
-        $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+# if ($null -eq $env:WT_SESSION) {
+#     if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
+#         # Get the literal path of the running .exe file
+#         $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
         
-        # Relaunch the EXE inside Windows Terminal and exit the legacy console
-        Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
-        Exit
-    }
-}
+#         # Relaunch the EXE inside Windows Terminal and exit the legacy console
+#         Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
+#         Exit
+#     }
+# }
 
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    exit
-}
+# $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+# if (-not $isAdmin) {
+#     Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+#     exit
+# }
 
 Write-Host "--- PHASE 0: Configuring Update Policies ---" -ForegroundColor Cyan
 
