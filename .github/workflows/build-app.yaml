@@ -32,7 +32,7 @@ jobs:
         New-Item -ItemType Directory -Force -Path "ZipStage\windowsinstaller\windowsinstaller"
         
         # 3. Compile installer.ps1 -> install.exe (placed in root)
-        ps2exe -InputFile installer.ps1 -OutputFile 'ZipStage\windowsinstaller\install.exe' -version '1.0.0'
+        ps2exe -InputFile installer.ps1 -OutputFile 'ZipStage\windowsinstaller\install.exe' -IconFile MM.ico -version '1.0.0'
         
         # 4. Copy repo files into the nested 'windowsinstaller' folder
         # This excludes the ZipStage itself to avoid infinite loops

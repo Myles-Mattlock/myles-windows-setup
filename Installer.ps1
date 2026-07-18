@@ -29,10 +29,6 @@ if (Test-Path ".\WindowsInstaller\AddWifi.ps1") {
     Start-Sleep -Seconds 15
 }
 
-# disable window suggestion
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "EnableSnapBar" /t REG_DWORD /d 0 /f
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "EnableSnapAssistFlyout" /t REG_DWORD /d 0 /f
-
 # turn off delivery omtimzation
 New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS
 New-ItemProperty -Path "HKU:\S-1-5-20\Software\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Settings" -Name "DownloadMode" -Value 0 -PropertyType DWord -Force
