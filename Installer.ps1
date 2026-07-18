@@ -194,6 +194,7 @@ Get-ChildItem -Path .\Setup.exe -Recurse | Unblock-File
 #######################################################################
 
 # Set-Cursor
+Get-ChildItem -Path .\set-cursor.ps1 -Recurse | Unblock-File
 .\set-cursor.ps1
 
 ###########################ohmyposh theme##############################
