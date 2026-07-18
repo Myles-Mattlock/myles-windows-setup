@@ -29,6 +29,10 @@ if (Test-Path ".\WindowsInstaller\AddWifi.ps1") {
     Start-Sleep -Seconds 15
 }
 
+# disable window suggestion
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "EnableSnapBar" /t REG_DWORD /d 0 /f
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "EnableSnapAssistFlyout" /t REG_DWORD /d 0 /f
+
 # turn off delivery omtimzation
 New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS
 New-ItemProperty -Path "HKU:\S-1-5-20\Software\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Settings" -Name "DownloadMode" -Value 0 -PropertyType DWord -Force
@@ -73,6 +77,7 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer
 
 # Set list view on start menu
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start" -Name "AllAppsViewMode" -Value 2 -Type DWord
+New-Item -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer" -Force | Out-Null; Set-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer" -Name "HideRecommendedSection" -Value 1 -Type DWord
 
 # Ensure the "All Apps" / "More Programs" list is NOT hidden (removes the restriction)
 Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoStartMenuMorePrograms" -ErrorAction SilentlyContinue
@@ -120,29 +125,29 @@ Get-Process *Widget* | Stop-Process -Force -ErrorAction SilentlyContinue
 
 # Debloat
 $Removals = @(
-    "Copilot", 
-    "3D Viewer", 
-    "Cortana", 
-    "Feedback Hub", 
+    "Copilot",
+    "3D Viewer",
+    "Cortana",
+    "Feedback Hub",
     "Microsoft 365 (Office)",
-    "Films & TV", 
-    "maps", 
-    "Mail and Calendar", 
-    "Paint 3D", 
-    "skype", 
+    "Films & TV",
+    "maps",
+    "Mail and Calendar",
+    "Paint 3D",
+    "skype",
     "Microsoft News",
-    "Microsoft To Do", 
-    "Microsoft Bing Search", 
-    "Power Automate", 
+    "Microsoft To Do",
+    "Microsoft Bing Search",
+    "Power Automate",
     "Quick assist",
-    "Solitaire & Casual Games", 
-    "Sound Recorder", 
-    "Sticky Notes", 
-    "Weather", 
+    "Solitaire & Casual Games",
+    "Sound Recorder",
+    "Sticky Notes",
+    "Weather",
     "Xbox",
-    "Microsoft Clipchamp", 
-    "MSN Weather", 
-    "microsoft 365 copilot", 
+    "Microsoft Clipchamp",
+    "MSN Weather",
+    "microsoft 365 copilot",
     "McAfee Personal Security",
     "Microsoft.Teams",
     "Microsoft Bing",
