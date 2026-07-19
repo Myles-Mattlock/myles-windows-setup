@@ -60,7 +60,7 @@ foreach ($path in $wtSettingsPaths) {
             Write-Host "Successfully set PowerShell 7 as default in: $path" -ForegroundColor Green
         }
         catch {
-            Write-Host "Failed to update Windows Terminal settings at $path: $_" -ForegroundColor Yellow
+            Write-Host "Failed to update Windows Terminal settings at ${path}: $_" -ForegroundColor Yellow
         }
     }
 }
