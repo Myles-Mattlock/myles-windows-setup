@@ -187,7 +187,7 @@ Get-ChildItem -Path .\Setup.exe -Recurse | Unblock-File
 Get-ChildItem -Path .\set-cursor.ps1 -Recurse | Unblock-File
 .\set-cursor.ps1
 
-# defasult powershell
+# default powershell
 Get-ChildItem -Path .\Default-powershell.ps1 -Recurse | Unblock-File
 .\Default-powershell.ps1
 
