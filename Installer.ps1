@@ -150,7 +150,7 @@ $Removals = @(
 )
 foreach ($app in $Removals) { winget remove $app --accept-source-agreements }
 
-dism /Online /Disable-Feature /FeatureName:MediaPlayback /FeatureName:MSRDC-Infrastructure /FeatureName:SMBDirect /FeatureName:WorkFolders-Client
+dism /Online /Disable-Feature /FeatureName:MediaPlayback /Remove /FeatureName:MSRDC-Infrastructure /Remove /FeatureName:SMBDirect /Remove /FeatureName:WorkFolders-Client /Remove
 
 #disable telmentry
 # --- Registry Tweaks ---
@@ -210,44 +210,6 @@ Write-Host "PowerShell 7 Telemetry disabled successfully." -ForegroundColor Gree
 Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -ErrorAction SilentlyContinue
 
 Write-Host "Telemetry tweaks applied (Skipped non-existent services)." -ForegroundColor Green
-
-#Remove Edge
-# Ensure script is running as Administrator
-Write-Host "Removing Microsoft Edge..." -ForegroundColor Yellow
-
-# 1. Unblock the uninstaller by modifying the registry
-$RegPath = "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge"
-if (Test-Path $RegPath) {
-    Set-ItemProperty -Path $RegPath -Name "NoRemove" -Value 0
-}
-
-# 2. Look for setup.exe in standard Edge directories
-$EdgePaths = @(
-    "${env:ProgramFiles(x86)}\Microsoft\Edge\Application",
-    "${env:ProgramFiles}\Microsoft\Edge\Application"
-)
-
-$Executed = $false
-
-foreach ($Path in $EdgePaths) {
-    if (Test-Path $Path) {
-        # Find the setup.exe file inside the version-numbered folder
-        $SetupExe = Get-ChildItem -Path $Path -Filter "setup.exe" -Recurse | Select-Object -First 1
-        if ($SetupExe) {
-            $Arguments = "--uninstall --system-level --verbose-logging --force-uninstall"
-            
-            # Run the uninstaller and wait for it to complete
-            Start-Process -FilePath $SetupExe.FullName -ArgumentList $Arguments -NoNewWindow
-            Write-Host "Edge removal command executed successfully." -ForegroundColor Green
-            $Executed = $true
-            break
-        }
-    }
-}
-
-if (-not $Executed) {
-    Write-Warning "Microsoft Edge uninstaller (setup.exe) was not found. It may already be removed."
-}
 
 Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
 # setting original policy:
