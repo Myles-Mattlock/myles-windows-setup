@@ -25,25 +25,28 @@ catch {
 foreach ($path in $wtSettingsPaths) {
     if (Test-Path $path) {
         try {
-            # Read raw text
+            # Read the file cleanly
             $rawJson = Get-Content $path -Raw
-            $jsonObj = ConvertFrom-Json $rawJson
+            if ([string]::IsNullOrWhiteSpace($rawJson)) { continue }
+
+            # Parse JSON (PS7 natively handles WT's inline comments)
+            $jsonContent = ConvertFrom-Json $rawJson
             
-            # Find the actual dynamic GUID from the profiles list
-            $pwshProfile = $jsonObj.profiles.list | Where-Object { $_.commandline -like "*pwsh*" -or $_.name -eq "PowerShell" } | Select-Object -First 1
+            # Find your PowerShell 7 profile GUID
+            $pwshProfile = $jsonContent.profiles.list | Where-Object { 
+                $_.commandline -like "*pwsh*" -or $_.name -like "*PowerShell 7*" 
+            } | Select-Object -First 1
             
+            # If found, use it; otherwise use the standard native WT GUID for pwsh
             $targetGuid = if ($pwshProfile -and $pwshProfile.guid) { $pwshProfile.guid } else { "{574e770e-697c-52ee-9fa0-26d831d81765}" }
             
-            # Use regex string replacement to swap out the defaultProfile line cleanly, preserving exact file structure
-            if ($rawJson -match '"defaultProfile"\s*:\s*"[^"]+"') {
-                $updatedJson = $rawJson -replace '"defaultProfile"\s*:\s*"[^"]+"', "`"defaultProfile`": `"$targetGuid`""
-            } else {
-                # If defaultProfile key isn't found at the root level, insert it right after the opening brace
-                $updatedJson = $rawJson -replace '^(\s*\{)', "`$1`n    `"defaultProfile`": `"$targetGuid`","
-            }
+            # Directly assign the default profile at the root level
+            $jsonContent.defaultProfile = $targetGuid
             
-            Set-Content -Path $path -Value $updatedJson -NoNewline
-            Write-Host "Successfully patched Windows Terminal defaultProfile in: $path" -ForegroundColor Green
+            # Convert back using a massive depth to guarantee NO nested arrays are flattened
+            $jsonContent | ConvertTo-Json -Depth 100 | Set-Content $path -Encoding utf8
+            
+            Write-Host "Successfully set PowerShell 7 as default in: $path" -ForegroundColor Green
         }
         catch {
             Write-Host "Failed to update Windows Terminal settings at $path: $_" -ForegroundColor Yellow
