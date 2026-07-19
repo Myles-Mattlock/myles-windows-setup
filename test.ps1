@@ -1,24 +1,33 @@
 # --- Set Windows Terminal as Default Terminal Application ---
-Write-Host "Setting Windows Terminal as the default terminal application..." -ForegroundColor Cyan
+Write-Host "Forcing Windows Terminal as system default terminal handler..." -ForegroundColor Cyan
 
-$ConsoleRegPath = "HKCU:\Console\%%Startup"
-if (-not (Test-Path $ConsoleRegPath)) {
-    New-Item -Path $ConsoleRegPath -Force | Out-Null
+# Define the local machine system path for console delegation
+$SysConsoleRegPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Console\Startup"
+
+if (-not (Test-Path $SysConsoleRegPath)) {
+    New-Item -Path $SysConsoleRegPath -Force | Out-Null
 }
 
-# The GUID for Windows Terminal as the default terminal handler
-New-ItemProperty -Path $ConsoleRegPath -Name "DelegationConsole" -Value "{2E90D11E-47C0-4660-848D-FB17B27C1743}" -PropertyType String -Force | Out-Null
-New-ItemProperty -Path $ConsoleRegPath -Name "DelegationTerminal" -Value "{E12C0B9D-8BE0-45C3-B75B-16983A7E00EA}" -PropertyType String -Force | Out-Null
+# Accurate, modern production GUIDs required by Windows to register the Windows Terminal handler package
+$ConsoleGuid  = "{2EACA947-7F5F-4CFA-BA87-8F7FBEEFBE69}"
+$TerminalGuid = "{E12CFF52-A866-4C77-9A90-F570A7AA2C6B}"
 
-Write-Host "Windows Terminal set as default handler." -ForegroundColor Green
+try {
+    # Write to System Startup registry
+    New-ItemProperty -Path $SysConsoleRegPath -Name "DelegationConsole" -Value $ConsoleGuid -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $SysConsoleRegPath -Name "DelegationTerminal" -Value $TerminalGuid -PropertyType String -Force | Out-Null
+    
+    # Mirroring to HKCU for the current user session context to apply immediately without restart
+    $UserConsoleRegPath = "HKCU:\Console\%%Startup"
+    if (-not (Test-Path $UserConsoleRegPath)) { New-Item -Path $UserConsoleRegPath -Force | Out-Null }
+    New-ItemProperty -Path $UserConsoleRegPath -Name "DelegationConsole" -Value $ConsoleGuid -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $UserConsoleRegPath -Name "DelegationTerminal" -Value $TerminalGuid -PropertyType String -Force | Out-Null
 
-# --- Set PowerShell 7 as Default Profile in Windows Terminal ---
-Write-Host "Setting PowerShell 7 as the default profile in Windows Terminal..." -ForegroundColor Cyan
-
-$wtSettingsPaths = @(
-    "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
-    "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json"
-)
+    Write-Host "Windows Terminal successfully registered as the system-wide default handler!" -ForegroundColor Green
+}
+catch {
+    Write-Host "Failed to update registry values. Ensure no group policies are blocking this action." -ForegroundColor Yellow
+}
 
 foreach ($path in $wtSettingsPaths) {
     if (Test-Path $path) {
