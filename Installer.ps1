@@ -1,14 +1,3 @@
-if ($null -eq $env:WT_SESSION) {
-    if (Get-Command "wt.exe" -ErrorAction SilentlyContinue) {
-        # Get the literal path of the running .exe file
-        $ExePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-        
-        # Relaunch the EXE inside Windows Terminal and exit the legacy console
-        Start-Process "wt.exe" -ArgumentList "`"$ExePath`""
-        Exit
-    }
-}
-
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
@@ -43,6 +32,9 @@ Set-ItemProperty -Path $WU -Name "DeferQualityUpdatesPeriodInDays" -Value 4
 Set-ItemProperty -Path $WU -Name "EnableOptionalUpdates" -Value 0
 gpupdate /force
 
+# Install packages
+winget install microsoft.powershell google.chrome --accept-source-agreements --accept-package-agreements
+
 # Run Updates
 winget update --all --accept-source-agreements --accept-package-agreements
 # --------------------------
@@ -51,6 +43,8 @@ Write-Host "System Tweaks & Debloat ---" -ForegroundColor Cyan
 
 # Explorer & Taskbar
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "LaunchTo" -Value 1
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "AutoCheckSelect" -Value 1
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
 $tb = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings"
 if (-not (Test-Path $tb)) { New-Item -Path $tb -Force | Out-Null }
@@ -68,15 +62,10 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer
 
 # Set list view on start menu
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start" -Name "AllAppsViewMode" -Value 2 -Type DWord
+New-Item -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer" -Force | Out-Null; Set-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer" -Name "HideRecommendedSection" -Value 1 -Type DWord
 
 # Ensure the "All Apps" / "More Programs" list is NOT hidden (removes the restriction)
 Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoStartMenuMorePrograms" -ErrorAction SilentlyContinue
-
-#########################Myles CleanUp-Tool############################
-Set-Location windowsinstaller
-.\Setup.exe
-Set-Location ..
-#######################################################################
 
 # Disable Recall
 write-Host "Disabling Recall..." -ForegroundColor Yellow
@@ -121,29 +110,29 @@ Get-Process *Widget* | Stop-Process -Force -ErrorAction SilentlyContinue
 
 # Debloat
 $Removals = @(
-    "Copilot", 
-    "3D Viewer", 
-    "Cortana", 
-    "Feedback Hub", 
+    "Copilot",
+    "3D Viewer",
+    "Cortana",
+    "Feedback Hub",
     "Microsoft 365 (Office)",
-    "Films & TV", 
-    "maps", 
-    "Mail and Calendar", 
-    "Paint 3D", 
-    "skype", 
+    "Films & TV",
+    "maps",
+    "Mail and Calendar",
+    "Paint 3D",
+    "skype",
     "Microsoft News",
-    "Microsoft To Do", 
-    "Microsoft Bing Search", 
-    "Power Automate", 
+    "Microsoft To Do",
+    "Microsoft Bing Search",
+    "Power Automate",
     "Quick assist",
-    "Solitaire & Casual Games", 
-    "Sound Recorder", 
-    "Sticky Notes", 
-    "Weather", 
+    "Solitaire & Casual Games",
+    "Sound Recorder",
+    "Sticky Notes",
+    "Weather",
     "Xbox",
-    "Microsoft Clipchamp", 
-    "MSN Weather", 
-    "microsoft 365 copilot", 
+    "Microsoft Clipchamp",
+    "MSN Weather",
+    "microsoft 365 copilot",
     "McAfee Personal Security",
     "Microsoft.Teams",
     "Microsoft Bing",
@@ -161,6 +150,7 @@ $Removals = @(
 )
 foreach ($app in $Removals) { winget remove $app --accept-source-agreements }
 
+dism /Online /Disable-Feature /FeatureName:MediaPlayback /Remove /FeatureName:MSRDC-Infrastructure /Remove /FeatureName:SMBDirect /Remove /FeatureName:WorkFolders-Client /Remove
 
 #disable telmentry
 # --- Registry Tweaks ---
@@ -186,6 +176,25 @@ foreach ($Reg in $RegistrySettings) {
     Set-ItemProperty -Path $Reg.Path -Name $Reg.Name -Value $Reg.Value -Type $Reg.Type
 }
 
+#########################Myles CleanUp-Tool############################
+Set-Location windowsinstaller
+Get-ChildItem -Path .\Setup.exe -Recurse | Unblock-File
+.\Setup.exe
+
+#######################################################################
+
+# Set-Cursor
+Get-ChildItem -Path .\set-cursor.ps1 -Recurse | Unblock-File
+.\set-cursor.ps1
+
+###########################ohmyposh theme##############################
+# Get-ChildItem -Path .\ohmyposh.ps1 -Recurse | Unblock-File
+# .\ohmyposh.ps1
+wt new-tab pwsh -Command "irm https://github.com/Myles-Mattlock/ohmyposh/raw/main/setup.ps1 | iex"
+
+Set-Location ..
+#######################################################################
+
 # disable powershell7 telemetry
 Write-Host "Disabling PowerShell 7 Telemetry..." -ForegroundColor Yellow
 
@@ -202,50 +211,35 @@ Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInN
 
 Write-Host "Telemetry tweaks applied (Skipped non-existent services)." -ForegroundColor Green
 
-#Remove Edge
-# Ensure script is running as Administrator
-Write-Host "Removing Microsoft Edge..." -ForegroundColor Yellow
-
-# 1. Unblock the uninstaller by modifying the registry
-$RegPath = "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge"
-if (Test-Path $RegPath) {
-    Set-ItemProperty -Path $RegPath -Name "NoRemove" -Value 0
-}
-
-# 2. Look for setup.exe in standard Edge directories
-$EdgePaths = @(
-    "${env:ProgramFiles(x86)}\Microsoft\Edge\Application",
-    "${env:ProgramFiles}\Microsoft\Edge\Application"
-)
-
-$Executed = $false
-
-foreach ($Path in $EdgePaths) {
-    if (Test-Path $Path) {
-        # Find the setup.exe file inside the version-numbered folder
-        $SetupExe = Get-ChildItem -Path $Path -Filter "setup.exe" -Recurse | Select-Object -First 1
-        if ($SetupExe) {
-            $Arguments = "--uninstall --system-level --verbose-logging --force-uninstall"
-            
-            # Run the uninstaller and wait for it to complete
-            Start-Process -FilePath $SetupExe.FullName -ArgumentList $Arguments -Wait -NoNewWindow
-            Write-Host "Edge removal command executed successfully." -ForegroundColor Green
-            $Executed = $true
-            break
-        }
-    }
-}
-
-if (-not $Executed) {
-    Write-Warning "Microsoft Edge uninstaller (setup.exe) was not found. It may already be removed."
-}
-
 Write-Host "`nDONE! Finalizing system..." -ForegroundColor Green
-
 # setting original policy:
 Set-ExecutionPolicy $originalPolicy -Scope LocalMachine -Force
 
-Write-Host "A Restart is required for all changes to take effect." -ForegroundColor Red
+#Ask if cleanup tool should be run
+# Load the Windows Forms assembly for the UI
+Add-Type -AssemblyName System.Windows.Forms
+
+# Define the message box text and buttons
+$title = "System Cleanup"
+$message = "Would you like to run the System Cleanup tool?"
+$buttons = [System.Windows.Forms.MessageBoxButtons]::YesNo
+$icon = [System.Windows.Forms.MessageBoxIcon]::Question
+
+# Display the pop-up and capture the user's choice
+$choice = [System.Windows.Forms.MessageBox]::Show($message, $title, $buttons, $icon)
+
+# Process the response
+if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
+    Write-Host "Starting System Cleanup..."
+    
+    # Run the executable safely using the Call operator (&)
+    & 'C:\Program Files\SystemCleanUp\System CleanUp.exe'
+} else {
+    Write-Host "A Restart is required for all changes to take effect. Cleanup tool was not run, but can be executed later from the desktop." -ForegroundColor Yellow
+    Exit
+}
+
+Write-Host "A Restart is required for all changes to take effect." -ForegroundColor Yellow
 
 Write-Host "Press any key to exit..."
 $null = [Console]::ReadKey($true)
