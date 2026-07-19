@@ -25,28 +25,28 @@ catch {
 foreach ($path in $wtSettingsPaths) {
     if (Test-Path $path) {
         try {
-            # Read and parse JSON
-            $jsonContent = Get-Content $path -Raw | ConvertFrom-Json
+            # Read raw text
+            $rawJson = Get-Content $path -Raw
+            $jsonObj = ConvertFrom-Json $rawJson
             
-            # Locate the PowerShell 7 profile (usually contains 'pwsh.exe')
-            $pwshProfile = $jsonContent.profiles.list | Where-Object { $_.commandline -like "*pwsh*" -or $_.name -eq "PowerShell" } | Select-Object -First 1
+            # Find the actual dynamic GUID from the profiles list
+            $pwshProfile = $jsonObj.profiles.list | Where-Object { $_.commandline -like "*pwsh*" -or $_.name -eq "PowerShell" } | Select-Object -First 1
             
-            if ($pwshProfile -and $pwshProfile.guid) {
-                # Update the default profile to match pwsh's GUID
-                $jsonContent.defaultProfile = $pwshProfile.guid
-                
-                # Save back to file cleanly
-                $jsonContent | ConvertTo-Json -Depth 10 | Set-Content $path
-                Write-Host "Successfully set PowerShell 7 as default in: $path" -ForegroundColor Green
+            $targetGuid = if ($pwshProfile -and $pwshProfile.guid) { $pwshProfile.guid } else { "{574e770e-697c-52ee-9fa0-26d831d81765}" }
+            
+            # Use regex string replacement to swap out the defaultProfile line cleanly, preserving exact file structure
+            if ($rawJson -match '"defaultProfile"\s*:\s*"[^"]+"') {
+                $updatedJson = $rawJson -replace '"defaultProfile"\s*:\s*"[^"]+"', "`"defaultProfile`": `"$targetGuid`""
             } else {
-                # Fallback if no specific GUID found: Use the standard modern pwsh GUID
-                $jsonContent.defaultProfile = "{574e770e-697c-52ee-9fa0-26d831d81765}"
-                $jsonContent | ConvertTo-Json -Depth 10 | Set-Content $path
-                Write-Host "Applied standard PowerShell 7 GUID to defaultProfile." -ForegroundColor Green
+                # If defaultProfile key isn't found at the root level, insert it right after the opening brace
+                $updatedJson = $rawJson -replace '^(\s*\{)', "`$1`n    `"defaultProfile`": `"$targetGuid`","
             }
+            
+            Set-Content -Path $path -Value $updatedJson -NoNewline
+            Write-Host "Successfully patched Windows Terminal defaultProfile in: $path" -ForegroundColor Green
         }
         catch {
-            Write-Host "Failed to update Windows Terminal settings at $path" -ForegroundColor Yellow
+            Write-Host "Failed to update Windows Terminal settings at $path: $_" -ForegroundColor Yellow
         }
     }
 }
