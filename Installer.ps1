@@ -187,10 +187,6 @@ Get-ChildItem -Path .\Setup.exe -Recurse | Unblock-File
 Get-ChildItem -Path .\set-cursor.ps1 -Recurse | Unblock-File
 .\set-cursor.ps1
 
-# default powershell
-Get-ChildItem -Path .\Default-powershell.ps1 -Recurse | Unblock-File
-.\Default-powershell.ps1
-
 ###########################ohmyposh theme##############################
 # Get-ChildItem -Path .\ohmyposh.ps1 -Recurse | Unblock-File
 # .\ohmyposh.ps1
