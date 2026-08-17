@@ -36,7 +36,7 @@ jobs:
         
         # 4. Copy repo files into the nested 'windowsinstaller' folder
         # This excludes the ZipStage itself to avoid infinite loops
-        Get-ChildItem -Exclude "ZipStage", ".git", ".github", ".gitignore", "elevate.manifest.xml", "InstallApplications.ps1", "Installer.ps1", "set-execution-policy.reg", "ToDo", "UpdatePolicy.ps1", "README.md"| Copy-Item -Destination "ZipStage\windowsinstaller\windowsinstaller" -Recurse -Force
+        Get-ChildItem -Exclude "ZipStage", ".git", ".github", ".gitignore", "elevate.manifest.xml", "InstallApplications.ps1", "Installer.ps1", "set-execution-policy.reg", "ToDo", "UpdatePolicy.ps1", "README.md", "MM.ico"| Copy-Item -Destination "ZipStage\windowsinstaller\windowsinstaller" -Recurse -Force
       shell: pwsh
 
     - name: Embed Admin Manifests (mt.exe)
@@ -78,7 +78,7 @@ jobs:
         name: WindowsInstaller-Package
 
     - name: Create Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3.0.2
       with:
         tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'beta-latest' }}
         files: WindowsInstaller.zip
