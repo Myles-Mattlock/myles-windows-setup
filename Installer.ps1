@@ -188,9 +188,11 @@ Get-ChildItem -Path .\set-cursor.ps1 -Recurse | Unblock-File
 .\set-cursor.ps1
 
 ###########################ohmyposh theme##############################
-# Get-ChildItem -Path .\ohmyposh.ps1 -Recurse | Unblock-File
-# .\ohmyposh.ps1
-wt new-tab pwsh -Command "irm https://github.com/Myles-Mattlock/ohmyposh/raw/main/setup.ps1 | iex"
+#Download setup.ps1
+Invoke-RestMethod -Uri "https://github.com/Myles-Mattlock/ohmyposh/raw/main/setup.ps1" -OutFile "$env:TEMP\setup.ps1"
+
+#Run in a new PowerShell 7 tab
+wt new-tab pwsh -ExecutionPolicy Bypass -File "$env:TEMP\setup.ps1"
 
 Set-Location ..
 #######################################################################
