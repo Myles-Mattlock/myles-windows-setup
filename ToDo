@@ -1,0 +1,12 @@
+These requested apps were not added because a reliable winget package was not found:
+
+DBeaver Community Edition
+Screen Ruler
+NVIDIA Studio Driver
+Microsoft Photos
+Snipping Tool
+Also, these did not need separate entries:
+
+Colour Picker: included in Microsoft PowerToys
+Notepad+: interpreted as Notepad++ and added as Notepad++.Notepad++
+Jabra: added as Jabra Direct using Jabra.Direct
