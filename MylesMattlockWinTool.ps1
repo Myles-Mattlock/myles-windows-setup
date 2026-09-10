@@ -10,8 +10,14 @@ if (-not $isAdmin) {
 
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Windows.Forms
 
+Add-Type -MemberDefinition @"
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+"@ -Name "DwmApi" -Namespace "Win32" | Out-Null
+
 $script:Root = Split-Path -Parent $PSCommandPath
 $script:BrushConverter = [System.Windows.Media.BrushConverter]::new()
+$script:AppVersion = '1.0.0'
 
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -50,18 +56,42 @@ $script:BrushConverter = [System.Windows.Media.BrushConverter]::new()
             <RowDefinition Height="*"/>
             <RowDefinition Height="180"/>
         </Grid.RowDefinitions>
-        <Border Grid.Row="0" Background="#252526" Padding="20" Margin="0,0,0,16">
-            <StackPanel>
-                <TextBlock Text="Myles Mattlock WinTool" FontSize="25" FontWeight="Bold" Foreground="#FFFFFF"/>
-                <TextBlock Text="Install, customize, and maintain Windows from one focused workspace" Foreground="#AAAAAA" Margin="0,5,0,0"/>
-            </StackPanel>
+        <Border Grid.Row="0" Background="#252526" CornerRadius="8" Padding="20" Margin="0,0,0,20">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="Myles Mattlock WinTool" FontSize="24" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    <TextBlock Text="Install, customize, and maintain Windows from one focused workspace" FontSize="14" Foreground="#AAAAAA" Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="HeaderVersion" Text="v1.0.0" Foreground="#888888" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                    <Image x:Name="HeaderLogo" Width="90" Height="76" Stretch="Uniform"/>
+                </StackPanel>
+            </Grid>
         </Border>
         <TabControl x:Name="MainTabs" Grid.Row="1" Background="#252526" BorderThickness="0">
+            <TabItem Header="Info" Foreground="#000000">
+                <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="System Information" Foreground="#00A8E8" FontWeight="Bold" FontSize="12" Margin="0,0,0,14"/>
+                        <Border Background="#2D2D30" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="WINDOWS VERSION" FontSize="11" FontWeight="Bold" Foreground="#888888"/>
+                                <TextBlock x:Name="InfoWindowsVersion" Text="Loading..." Foreground="#FFFFFF" FontSize="16" FontWeight="Bold" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="DRIVE STATUS" FontSize="11" FontWeight="Bold" Foreground="#888888" Margin="0,4,0,8"/>
+                        <StackPanel x:Name="InfoDriveStatus"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
             <TabItem Header="Install / Remove Apps">
                 <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <TextBlock Text="App Library" Foreground="#00A8E8" FontWeight="Bold" FontSize="12" Margin="0,0,0,14"/>
-                        <TextBlock Text="Install" FontSize="18" FontWeight="Bold" Margin="0,0,0,12"/>
                         <UniformGrid Columns="3">
                             <CheckBox x:Name="InstallPowerShell" Content="PowerShell 7"/>
                             <CheckBox x:Name="InstallOperaGx" Content="Opera GX"/>
@@ -83,8 +113,8 @@ $script:BrushConverter = [System.Windows.Media.BrushConverter]::new()
                         </UniformGrid>
                         <TextBlock Text="Select apps to install or uninstall" Foreground="#888888" Margin="0,8,0,8"/>
                         <WrapPanel>
-                            <Button x:Name="InstallSelected" Content="Install selected apps" HorizontalAlignment="Left" Margin="0,0,8,0"/>
-                            <Button x:Name="UninstallSelected" Content="Uninstall selected apps" Background="#A83D3D" HorizontalAlignment="Left"/>
+                            <Button x:Name="InstallSelected" Content="Install selected apps" Height="37" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,8,0"/>
+                            <Button x:Name="UninstallSelected" Content="Uninstall selected apps" Width="180" Background="#A83D3D" HorizontalAlignment="Left" VerticalAlignment="Top"/>
                         </WrapPanel>
                     </StackPanel>
                 </ScrollViewer>
@@ -135,7 +165,7 @@ $script:BrushConverter = [System.Windows.Media.BrushConverter]::new()
 
 $reader = New-Object System.Xml.XmlNodeReader $xaml
 $window = [Windows.Markup.XamlReader]::Load($reader)
-@('InstallPowerShell','InstallOperaGx','InstallChrome','InstallFirefox','InstallDocker','InstallGithubDesktop','InstallTeams','InstallJabra','Install7zip','InstallVscode','InstallOffice','InstallHwmonitor','InstallNotepadPlus','InstallPostman','InstallGit','InstallWsl','InstallPowertoys','ShowFileExtensions','ShowTaskView','HideRecommended','DarkMode','DefenderPua','InstallSelected','UninstallSelected','ApplyCustomization','KeepTeams','RunDebloat','DefaultProfile','ServerProfile','CustomProfile','CleanupTemp','CleanupRecycle','CleanupCleanmgr','CleanupDns','CleanupDism','CleanupStatus','CleanupProgress','CleanupProgressPercent','StartCleanup','Log','LogScroll') | ForEach-Object {
+@('HeaderVersion','HeaderLogo','InfoWindowsVersion','InfoDriveStatus','InstallPowerShell','InstallOperaGx','InstallChrome','InstallFirefox','InstallDocker','InstallGithubDesktop','InstallTeams','InstallJabra','Install7zip','InstallVscode','InstallOffice','InstallHwmonitor','InstallNotepadPlus','InstallPostman','InstallGit','InstallWsl','InstallPowertoys','ShowFileExtensions','ShowTaskView','HideRecommended','DarkMode','DefenderPua','InstallSelected','UninstallSelected','ApplyCustomization','KeepTeams','RunDebloat','DefaultProfile','ServerProfile','CustomProfile','CleanupTemp','CleanupRecycle','CleanupCleanmgr','CleanupDns','CleanupDism','CleanupStatus','CleanupProgress','CleanupProgressPercent','StartCleanup','Log','LogScroll') | ForEach-Object {
     Set-Variable -Name $_ -Value $window.FindName($_)
 }
 
@@ -203,6 +233,71 @@ foreach ($item in $appItems) {
         $item.Check.Content = "$($item.Name) (installed)"
     }
     $item.Check.IsChecked = $false
+}
+
+function Get-InfoSmartctlData([int]$DiskIndex) {
+    $smartctlPath = Get-Command 'smartctl.exe' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+    if (-not $smartctlPath) {
+        foreach ($path in @((Join-Path $script:Root 'smartctl.exe'), 'C:\Program Files\smartmontools\bin\smartctl.exe', 'C:\Program Files (x86)\smartmontools\bin\smartctl.exe')) {
+            if (Test-Path -LiteralPath $path) { $smartctlPath = $path; break }
+        }
+    }
+    if (-not $smartctlPath) { return $null }
+    try {
+        $output = & $smartctlPath '-j' '-a' "/dev/pd$DiskIndex" 2>$null | Out-String
+        if (-not [string]::IsNullOrWhiteSpace($output)) { return ($output | ConvertFrom-Json) }
+    } catch {}
+    return $null
+}
+
+function Update-InfoPage {
+    try {
+        $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+        $displayVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).DisplayVersion
+        $version = if ($displayVersion) { $displayVersion } else { $os.Version }
+        $InfoWindowsVersion.Text = "$($os.Caption) $version (Build $($os.BuildNumber))"
+    } catch { $InfoWindowsVersion.Text = 'Unable to read Windows version.' }
+
+    $InfoDriveStatus.Children.Clear()
+    try {
+        $physicalDisks = @(Get-PhysicalDisk -ErrorAction Stop)
+        $fixedDrives = [System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq 'Fixed' -and $_.IsReady }
+        foreach ($drive in $fixedDrives) {
+            $disk = $null
+            try {
+                $partition = Get-Partition -DriveLetter $drive.Name.Substring(0, 1) -ErrorAction SilentlyContinue
+                if ($partition) { $disk = $physicalDisks | Where-Object { $_.DeviceId -eq $partition.DiskNumber } | Select-Object -First 1 }
+            } catch {}
+
+            $health = 'N/A'
+            $healthColor = '#888888'
+            if ($disk) {
+                $json = Get-InfoSmartctlData -DiskIndex $disk.DeviceId
+                if ($json -and $null -ne $json.nvme_smart_health_information_log.percentage_used) {
+                    $healthValue = 100 - [int]$json.nvme_smart_health_information_log.percentage_used
+                    $health = "$healthValue% Health"
+                    $healthColor = if ($healthValue -lt 70) { '#F87171' } elseif ($healthValue -lt 90) { '#FACC15' } else { '#4ADE80' }
+                } elseif ($json -and $json.smart_status.passed -eq $true) {
+                    $health = '100% Health'; $healthColor = '#4ADE80'
+                } elseif ($disk.HealthStatus) {
+                    $health = [string]$disk.HealthStatus
+                    $healthColor = if ($health -eq 'Healthy') { '#4ADE80' } else { '#FACC15' }
+                }
+            }
+
+            $row = New-Object System.Windows.Controls.Grid
+            $row.Background = '#2D2D30'; $row.Padding = New-Object System.Windows.Thickness(12, 10, 12, 10); $row.Margin = New-Object System.Windows.Thickness(0, 0, 0, 8)
+            $label = New-Object System.Windows.Controls.TextBlock
+                $label.Text = "$($drive.Name.TrimEnd('\'))  ($([math]::Round($drive.TotalSize / 1GB, 1)) GB)"; $label.Foreground = '#FFFFFF'; $label.FontSize = 14; $label.VerticalAlignment = 'Center'
+            $status = New-Object System.Windows.Controls.TextBlock
+            $status.Text = $health; $status.Foreground = $healthColor; $status.FontWeight = 'Bold'; $status.FontSize = 14; $status.HorizontalAlignment = 'Right'; $status.VerticalAlignment = 'Center'
+            [void]$row.Children.Add($label); [void]$row.Children.Add($status)
+            [void]$InfoDriveStatus.Children.Add($row)
+        }
+        if ($fixedDrives.Count -eq 0) { $InfoDriveStatus.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{ Text = 'No fixed drives found.'; Foreground = '#888888' })) }
+    } catch {
+        $InfoDriveStatus.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{ Text = 'Unable to read drive status.'; Foreground = '#F87171' }))
+    }
 }
 
 function Start-AppOperation([string]$Action) {
@@ -512,4 +607,23 @@ $StartCleanup.Add_Click({
 })
 
 Write-Log 'Ready. Choose a page to begin.'
+$window.Add_Loaded({
+    try {
+        $hwnd = (New-Object System.Windows.Interop.WindowInteropHelper($window)).Handle
+        $darkTealColor = 0x00382D12
+        [Win32.DwmApi]::DwmSetWindowAttribute($hwnd, 35, [ref]$darkTealColor, [System.Runtime.InteropServices.Marshal]::SizeOf([type][int])) | Out-Null
+    } catch {}
+}.GetNewClosure())
+$HeaderVersion.Text = "v$script:AppVersion"
+$logoPath = Join-Path $script:Root 'SystemCleanUp\LogoRight.jpg'
+if (Test-Path -LiteralPath $logoPath) {
+    $bitmap = New-Object System.Windows.Media.Imaging.BitmapImage
+    $bitmap.BeginInit()
+    $bitmap.UriSource = New-Object System.Uri($logoPath, [System.UriKind]::Absolute)
+    $bitmap.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+    $bitmap.EndInit()
+    $HeaderLogo.Source = $bitmap
+}
+$MainTabs.SelectedIndex = 0
+Update-InfoPage
 $window.ShowDialog() | Out-Null
