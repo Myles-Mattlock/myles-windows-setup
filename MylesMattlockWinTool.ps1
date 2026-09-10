@@ -80,11 +80,14 @@ $script:AppVersion = '1.0.0'
                         <Border Background="#2D2D30" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="WINDOWS VERSION" FontSize="11" FontWeight="Bold" Foreground="#888888"/>
-                                <TextBlock x:Name="InfoWindowsVersion" Text="Loading..." Foreground="#FFFFFF" FontSize="16" FontWeight="Bold" Margin="0,4,0,0"/>
+                                <TextBlock x:Name="InfoWindowsLoading" Text="Loading..." Foreground="#888888" Margin="0,4,0,0"/>
+                                <TextBlock x:Name="InfoWindowsVersion" Text="" Foreground="#FFFFFF" FontSize="16" FontWeight="Bold" Margin="0,4,0,0"/>
                             </StackPanel>
                         </Border>
                         <TextBlock Text="DRIVE STATUS" FontSize="11" FontWeight="Bold" Foreground="#888888" Margin="0,4,0,8"/>
-                        <StackPanel x:Name="InfoDriveStatus"/>
+                        <StackPanel x:Name="InfoDriveStatus">
+                            <TextBlock x:Name="InfoDriveLoading" Text="Loading..." Foreground="#888888"/>
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -165,7 +168,7 @@ $script:AppVersion = '1.0.0'
 
 $reader = New-Object System.Xml.XmlNodeReader $xaml
 $window = [Windows.Markup.XamlReader]::Load($reader)
-@('HeaderVersion','HeaderLogo','InfoWindowsVersion','InfoDriveStatus','InstallPowerShell','InstallOperaGx','InstallChrome','InstallFirefox','InstallDocker','InstallGithubDesktop','InstallTeams','InstallJabra','Install7zip','InstallVscode','InstallOffice','InstallHwmonitor','InstallNotepadPlus','InstallPostman','InstallGit','InstallWsl','InstallPowertoys','ShowFileExtensions','ShowTaskView','HideRecommended','DarkMode','DefenderPua','InstallSelected','UninstallSelected','ApplyCustomization','KeepTeams','RunDebloat','DefaultProfile','ServerProfile','CustomProfile','CleanupTemp','CleanupRecycle','CleanupCleanmgr','CleanupDns','CleanupDism','CleanupStatus','CleanupProgress','CleanupProgressPercent','StartCleanup','Log','LogScroll') | ForEach-Object {
+@('HeaderVersion','HeaderLogo','InfoWindowsVersion','InfoWindowsLoading','InfoDriveStatus','InfoDriveLoading','InstallPowerShell','InstallOperaGx','InstallChrome','InstallFirefox','InstallDocker','InstallGithubDesktop','InstallTeams','InstallJabra','Install7zip','InstallVscode','InstallOffice','InstallHwmonitor','InstallNotepadPlus','InstallPostman','InstallGit','InstallWsl','InstallPowertoys','ShowFileExtensions','ShowTaskView','HideRecommended','DarkMode','DefenderPua','InstallSelected','UninstallSelected','ApplyCustomization','KeepTeams','RunDebloat','DefaultProfile','ServerProfile','CustomProfile','CleanupTemp','CleanupRecycle','CleanupCleanmgr','CleanupDns','CleanupDism','CleanupStatus','CleanupProgress','CleanupProgressPercent','StartCleanup','Log','LogScroll') | ForEach-Object {
     Set-Variable -Name $_ -Value $window.FindName($_)
 }
 
@@ -225,14 +228,16 @@ function Get-AppItems {
 }
 
 $appItems = @(Get-AppItems)
-foreach ($item in $appItems) {
-    try {
-        $item.Installed = (& winget.exe list --id $item.Id --exact --accept-source-agreements 2>$null | Out-String) -match [regex]::Escape($item.Id)
-    } catch { $item.Installed = $false }
-    if ($item.Installed) {
-        $item.Check.Content = "$($item.Name) (installed)"
+function Initialize-AppItems {
+    foreach ($item in $appItems) {
+        try {
+            $item.Installed = (& winget.exe list --id $item.Id --exact --accept-source-agreements 2>$null | Out-String) -match [regex]::Escape($item.Id)
+        } catch { $item.Installed = $false }
+        if ($item.Installed) {
+            $item.Check.Content = "$($item.Name) (installed)"
+        }
+        $item.Check.IsChecked = $false
     }
-    $item.Check.IsChecked = $false
 }
 
 function Get-InfoSmartctlData([int]$DiskIndex) {
@@ -257,7 +262,9 @@ function Update-InfoPage {
         $version = if ($displayVersion) { $displayVersion } else { $os.Version }
         $InfoWindowsVersion.Text = "$($os.Caption) $version (Build $($os.BuildNumber))"
     } catch { $InfoWindowsVersion.Text = 'Unable to read Windows version.' }
+    $InfoWindowsLoading.Visibility = 'Collapsed'
 
+    $InfoDriveLoading.Visibility = 'Visible'
     $InfoDriveStatus.Children.Clear()
     try {
         $physicalDisks = @(Get-PhysicalDisk -ErrorAction Stop)
@@ -298,6 +305,7 @@ function Update-InfoPage {
     } catch {
         $InfoDriveStatus.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{ Text = 'Unable to read drive status.'; Foreground = '#F87171' }))
     }
+    $InfoDriveLoading.Visibility = 'Collapsed'
 }
 
 function Start-AppOperation([string]$Action) {
@@ -625,5 +633,12 @@ if (Test-Path -LiteralPath $logoPath) {
     $HeaderLogo.Source = $bitmap
 }
 $MainTabs.SelectedIndex = 0
-Update-InfoPage
+$startupTimer = New-Object System.Windows.Threading.DispatcherTimer
+$startupTimer.Interval = [TimeSpan]::FromMilliseconds(100)
+$startupTimer.Add_Tick({
+    $this.Stop()
+    Initialize-AppItems
+    Update-InfoPage
+}.GetNewClosure())
+$startupTimer.Start()
 $window.ShowDialog() | Out-Null
