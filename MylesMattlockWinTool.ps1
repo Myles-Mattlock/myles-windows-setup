@@ -269,6 +269,11 @@ function Update-InfoPage {
     try {
         $physicalDisks = @(Get-PhysicalDisk -ErrorAction SilentlyContinue)
         $fixedDrives = @([System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq 'Fixed' -and $_.IsReady })
+        if ($fixedDrives.Count -eq 0) {
+            $fixedDrives = @(Get-CimInstance Win32_LogicalDisk -Filter "DriveType = 3" -ErrorAction SilentlyContinue | ForEach-Object {
+                [pscustomobject]@{ Name = "$($_.DeviceID)\"; TotalSize = [double]$_.Size; IsReady = $true }
+            })
+        }
         foreach ($drive in $fixedDrives) {
             $disk = $null
             try {
@@ -304,6 +309,11 @@ function Update-InfoPage {
         if ($fixedDrives.Count -eq 0) { $InfoDriveStatus.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{ Text = 'No fixed drives found.'; Foreground = '#888888' })) }
     } catch {
         $fixedDrives = @([System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq 'Fixed' -and $_.IsReady })
+        if ($fixedDrives.Count -eq 0) {
+            $fixedDrives = @(Get-CimInstance Win32_LogicalDisk -Filter "DriveType = 3" -ErrorAction SilentlyContinue | ForEach-Object {
+                [pscustomobject]@{ Name = "$($_.DeviceID)\"; TotalSize = [double]$_.Size; IsReady = $true }
+            })
+        }
         foreach ($drive in $fixedDrives) {
             $row = New-Object System.Windows.Controls.Grid
             $row.Background = '#2D2D30'; $row.Padding = New-Object System.Windows.Thickness(12, 10, 12, 10); $row.Margin = New-Object System.Windows.Thickness(0, 0, 0, 8)
