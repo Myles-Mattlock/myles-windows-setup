@@ -538,7 +538,7 @@ $StartCleanup.Add_Click({
     $Global:FinishedQueue = [System.Collections.Concurrent.ConcurrentQueue[bool]]::new()
 
     $worker = {
-        param($Tasks, $LogQueue, $ProgressQueue, $FinishedQueue)
+        param($CurrentDir, $RegFiles, $Tasks, $LogQueue, $ProgressQueue, $FinishedQueue)
         function Send-Log ($message) { if (-not [string]::IsNullOrWhiteSpace($message)) { $LogQueue.Enqueue($message) } }
         function Send-Progress ($value, $status) { $ProgressQueue.Enqueue(@{ Value = $value; Status = $status }) }
         function Invoke-SilentProcess ($fileName, $arguments) {
@@ -564,9 +564,13 @@ $StartCleanup.Add_Click({
         }
         $totalTasks = @($Tasks.Values | Where-Object { $_ -eq $true }).Count
         $completedTasks = 0
+        foreach ($file in $RegFiles) {
+            $filePath = Join-Path $CurrentDir $file
+            if (Test-Path $filePath) { Invoke-SilentProcess 'reg.exe' "import `"$filePath`"" }
+        }
         if ($Tasks.DoTemp) {
             Send-Progress 0 'Clearing temporary files...'; Send-Log '=== CLEARING TEMP FILES AND LOGS ==='
-            @('C:\Windows\Temp\*','C:\Windows\Prefetch\*','C:\Windows\SoftwareDistribution\Download\*',"$([System.IO.Path]::GetTempPath())*",'C:\Intel','C:\PerfLogs') | ForEach-Object { if (Test-Path $_) { Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue } }
+            @('C:\Windows\Temp\*','C:\Windows\Prefetch\*','C:\Windows\SoftwareDistribution\Download\*',"$([System.IO.Path]::GetTempPath())*",'C:\Intel','C:\PerfLogs') | ForEach-Object { if (Test-Path $_) { Send-Log "Deleting files in: $_"; Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue } }
             $completedTasks++; Send-Progress ([Math]::Round(($completedTasks / $totalTasks) * 100) ) 'Temp files cleared.'
         }
         if ($Tasks.DoRecycle) {
@@ -596,7 +600,7 @@ $StartCleanup.Add_Click({
     $Global:Runspace = [runspacefactory]::CreateRunspace(); $Global:Runspace.Open()
     $Global:PowerShell = [powershell]::Create(); $Global:PowerShell.Runspace = $Global:Runspace
     [void]$Global:PowerShell.AddScript($worker)
-    @($selectedTasks, $Global:LogQueue, $Global:ProgressQueue, $Global:FinishedQueue) | ForEach-Object { [void]$Global:PowerShell.AddArgument($_) }
+    @($script:Root, @('SystemCleanUp\DiskCleanupSettings.reg', 'SystemCleanUp\DiskCleanupSettings2.reg'), $selectedTasks, $Global:LogQueue, $Global:ProgressQueue, $Global:FinishedQueue) | ForEach-Object { [void]$Global:PowerShell.AddArgument($_) }
     $Global:AsyncResult = $Global:PowerShell.BeginInvoke()
     $timer = New-Object System.Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(50)
