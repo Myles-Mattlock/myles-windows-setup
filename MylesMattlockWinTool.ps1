@@ -303,7 +303,18 @@ function Update-InfoPage {
         }
         if ($fixedDrives.Count -eq 0) { $InfoDriveStatus.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{ Text = 'No fixed drives found.'; Foreground = '#888888' })) }
     } catch {
-        $InfoDriveStatus.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{ Text = 'Unable to read drive status.'; Foreground = '#F87171' }))
+        $fixedDrives = @([System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq 'Fixed' -and $_.IsReady })
+        foreach ($drive in $fixedDrives) {
+            $row = New-Object System.Windows.Controls.Grid
+            $row.Background = '#2D2D30'; $row.Padding = New-Object System.Windows.Thickness(12, 10, 12, 10); $row.Margin = New-Object System.Windows.Thickness(0, 0, 0, 8)
+            $label = New-Object System.Windows.Controls.TextBlock
+            $label.Text = "$($drive.Name.TrimEnd('\'))  ($([math]::Round($drive.TotalSize / 1GB, 1)) GB)"; $label.Foreground = '#FFFFFF'; $label.FontSize = 14
+            $status = New-Object System.Windows.Controls.TextBlock
+            $status.Text = 'N/A'; $status.Foreground = '#888888'; $status.FontWeight = 'Bold'; $status.FontSize = 14; $status.HorizontalAlignment = 'Right'
+            [void]$row.Children.Add($label); [void]$row.Children.Add($status)
+            [void]$InfoDriveStatus.Children.Add($row)
+        }
+        if ($fixedDrives.Count -eq 0) { $InfoDriveStatus.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{ Text = 'No fixed drives found.'; Foreground = '#888888' })) }
     }
     $InfoDriveLoading.Visibility = 'Collapsed'
 }
