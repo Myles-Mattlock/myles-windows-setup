@@ -267,8 +267,8 @@ function Update-InfoPage {
     $InfoDriveLoading.Visibility = 'Visible'
     $InfoDriveStatus.Children.Clear()
     try {
-        $physicalDisks = @(Get-PhysicalDisk -ErrorAction Stop)
-        $fixedDrives = [System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq 'Fixed' -and $_.IsReady }
+        $physicalDisks = @(Get-PhysicalDisk -ErrorAction SilentlyContinue)
+        $fixedDrives = @([System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq 'Fixed' -and $_.IsReady })
         foreach ($drive in $fixedDrives) {
             $disk = $null
             try {
